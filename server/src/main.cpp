@@ -77,8 +77,8 @@ void setup()
   SerialUSB.begin(9600);
   Wire.begin();
 
-  getVoltage();
-
+  SerialUSB.println("Level of battery : ");
+  SerialUSB.println( getVoltage());
   //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
 
   //.begin will start periodic measurements for us (see the later examples for details on how to override this)
@@ -101,6 +101,9 @@ void loop()
   ledOn();
   ledOff();
   
+  SerialUSB.println("Level of battery : ");
+  SerialUSB.println( getVoltage());
+  
   if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
   {
     SerialUSB.println();
@@ -118,6 +121,7 @@ void loop()
   }
   else
     SerialUSB.println(F("."));
+
   delay(1000);
 
   //delay(500);
