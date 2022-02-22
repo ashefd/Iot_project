@@ -43,6 +43,58 @@ static const u1_t PROGMEM APPKEY[16] = {
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 
 
+SCD4x mySensor;
+
+void get_value() {
+  Wire.beginTransmission(qwiicAddress);
+  Wire.write(COMMAND_GET_VALUE); // command for status
+  Wire.endTransmission();    // stop transmitting //this looks like it was essential.
+
+  Wire.requestFrom(qwiicAddress, 2);    // request 1 bytes from slave device qwiicAddress
+
+  while (Wire.available()) { // slave may send less than requested
+  uint8_t ADC_VALUE_L = Wire.read(); 
+//  SerialUSBprintln("ADC_VALUE_L:  ");
+//  SerialUSBprintln(ADC_VALUE_L,DEC);
+  uint8_t ADC_VALUE_H = Wire.read();
+//  SerialUSBprintln("ADC_VALUE_H:  ");
+//  SerialUSBprintln(ADC_VALUE_H,DEC);
+  uint8_t ADC_VALUE=ADC_VALUE_H;
+  ADC_VALUE<<=8;
+  ADC_VALUE|=ADC_VALUE_L;
+  SerialUSB.println("ADC_VALUE:  ");
+  SerialUSB.println(ADC_VALUE,DEC);
+  }
+  uint16_t x=Wire.read(); 
+}
+
+void ledOn() {
+  Wire.beginTransmission(qwiicAddress);
+  Wire.write(COMMAND_LED_ON);
+  Wire.endTransmission();
+}
+
+void ledOff() {
+  Wire.beginTransmission(qwiicAddress);
+  Wire.write(COMMAND_LED_OFF);
+  Wire.endTransmission();
+}
+
+template <uint16_t PIN=PIN_ANALOG_IN>
+uint16_t getVoltage() {
+    return (uint16_t)roundf((3300.0f / 1023.0f) * (4.7f + 10.0f) / 10.0f * (float)analogRead(PIN));
+}
+
+// testForConnectivity() checks for an ACK from an Sensor. If no ACK
+// program freezes and notifies user.
+void testForConnectivity() {
+  Wire.beginTransmission(qwiicAddress);
+  //check here for an ACK from the slave, if no ACK don't allow change?
+  if (Wire.endTransmission() != 0) {
+    SerialUSB.println("Check connections. No slave attached.");
+  }
+}
+
 // Méthodes envois TTN 
 static osjob_t sendjob;
 
@@ -172,6 +224,31 @@ void do_send(osjob_t* j){
     if (LMIC.opmode & OP_TXRXPEND) {
         Console.println(F("OP_TXRXPEND, not sending"));
     } else {
+      // Get measures
+      get_value();
+      ledOn();
+      ledOff();
+      
+      if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
+      {
+        SerialUSB.println();
+
+        SerialUSB.println(F("CO2(ppm):"));
+        SerialUSB.println(mySensor.getCO2());
+
+        SerialUSB.println(F("\tTemperature(C):"));
+        SerialUSB.println(mySensor.getTemperature(), 1);
+
+        SerialUSB.println(F("\tHumidity(%RH):"));
+        SerialUSB.println(mySensor.getHumidity(), 1);
+
+        SerialUSB.println();
+      }
+      else
+        SerialUSB.println(F("."));
+
+
+      // Send data
       unsigned char msg[myobject_Uplink_size];
 
       myobject_Uplink message;
@@ -182,65 +259,13 @@ void do_send(osjob_t* j){
       message.timestamp = millis();
 
       pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
-      pb_encode_delimited(&stream, myobject_Uplink_fields, &message);
+      pb_encode(&stream, myobject_Uplink_fields, &message);
 
       // Prepare upstream data transmission at the next possible time.
       LMIC_setTxData2(1, msg, stream.bytes_written, 0);
       Console.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
-}
-
-SCD4x mySensor;
-
-void get_value() {
-  Wire.beginTransmission(qwiicAddress);
-  Wire.write(COMMAND_GET_VALUE); // command for status
-  Wire.endTransmission();    // stop transmitting //this looks like it was essential.
-
-  Wire.requestFrom(qwiicAddress, 2);    // request 1 bytes from slave device qwiicAddress
-
-  while (Wire.available()) { // slave may send less than requested
-  uint8_t ADC_VALUE_L = Wire.read(); 
-//  SerialUSBprintln("ADC_VALUE_L:  ");
-//  SerialUSBprintln(ADC_VALUE_L,DEC);
-  uint8_t ADC_VALUE_H = Wire.read();
-//  SerialUSBprintln("ADC_VALUE_H:  ");
-//  SerialUSBprintln(ADC_VALUE_H,DEC);
-  uint8_t ADC_VALUE=ADC_VALUE_H;
-  ADC_VALUE<<=8;
-  ADC_VALUE|=ADC_VALUE_L;
-  SerialUSB.println("ADC_VALUE:  ");
-  SerialUSB.println(ADC_VALUE,DEC);
-  }
-  uint16_t x=Wire.read(); 
-}
-
-void ledOn() {
-  Wire.beginTransmission(qwiicAddress);
-  Wire.write(COMMAND_LED_ON);
-  Wire.endTransmission();
-}
-
-void ledOff() {
-  Wire.beginTransmission(qwiicAddress);
-  Wire.write(COMMAND_LED_OFF);
-  Wire.endTransmission();
-}
-
-template <uint16_t PIN=PIN_ANALOG_IN>
-uint16_t getVoltage() {
-    return (uint16_t)roundf((3300.0f / 1023.0f) * (4.7f + 10.0f) / 10.0f * (float)analogRead(PIN));
-}
-
-// testForConnectivity() checks for an ACK from an Sensor. If no ACK
-// program freezes and notifies user.
-void testForConnectivity() {
-  Wire.beginTransmission(qwiicAddress);
-  //check here for an ACK from the slave, if no ACK don't allow change?
-  if (Wire.endTransmission() != 0) {
-    SerialUSB.println("Check connections. No slave attached.");
-  }
 }
 
 
@@ -280,26 +305,4 @@ void setup()
 void loop()
 {
   os_runloop_once();
-
-  get_value();
-  ledOn();
-  ledOff();
-  
-  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
-  {
-    SerialUSB.println();
-
-    SerialUSB.println(F("CO2(ppm):"));
-    SerialUSB.println(mySensor.getCO2());
-
-    SerialUSB.println(F("\tTemperature(C):"));
-    SerialUSB.println(mySensor.getTemperature(), 1);
-
-    SerialUSB.println(F("\tHumidity(%RH):"));
-    SerialUSB.println(mySensor.getHumidity(), 1);
-
-    SerialUSB.println();
-  }
-  else
-    SerialUSB.println(F("."));
 }
