@@ -5,6 +5,8 @@
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 #include "format.pb.h"
 #include "pb_encode.h"
+#include <lmic.h>
+#include <hal/hal.h>
 
 #define COMMAND_LED_OFF     0x00
 #define COMMAND_LED_ON      0x01
