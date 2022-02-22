@@ -50,6 +50,11 @@ void ledOff() {
   Wire.endTransmission();
 }
 
+template <uint16_t PIN=PIN_ANALOG_IN>
+uint16_t getVoltage() {
+    return (uint16_t)roundf((3300.0f / 1023.0f) * (4.7f + 10.0f) / 10.0f * (float)analogRead(PIN));
+}
+
 // testForConnectivity() checks for an ACK from an Sensor. If no ACK
 // program freezes and notifies user.
 void testForConnectivity() {
@@ -65,6 +70,12 @@ void setup()
 {
   SerialUSB.begin(9600);
   Wire.begin();
+
+  getVoltage();
+
+  //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
+
+  //.begin will start periodic measurements for us (see the later examples for details on how to override this)
 
   if (mySensor.begin() == false)
   {
