@@ -3,24 +3,17 @@ Command to build proto file to server
 
 In Iot_project:
 protoc --nanopb_out=./server/src format.proto
-
-Then in format.pb.h replace 
-#include <pb.h>
-with
-#include "pb.h" 
 */
 
 syntax = "proto3";
 
 package myobject;
 
-//import "google/protobuf/timestamp.proto";
-
 message Uplink {
   float co2 = 1;
   float temperature = 2;
   float humidity = 3;
   float loudness = 4;
-  int32 battery = 5;
-  //google.protobuf.Timestamp timestamp = 6;
+  uint32 battery = 5;
+  uint32 timestamp = 6;
 }

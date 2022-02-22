@@ -3,7 +3,7 @@
 
 #ifndef PB_MYOBJECT_FORMAT_PB_H_INCLUDED
 #define PB_MYOBJECT_FORMAT_PB_H_INCLUDED
-#include "pb.h"
+#include <pb.h>
 
 #if PB_PROTO_HEADER_VERSION != 40
 #error Regenerate this file with the current version of nanopb generator.
@@ -19,13 +19,14 @@ typedef struct _myobject_Uplink {
     float temperature;
     float humidity;
     float loudness;
-    int32_t battery;
+    uint32_t battery;
+    uint32_t timestamp;
 } myobject_Uplink;
 
 
 /* Initializer values for message structs */
-#define myobject_Uplink_init_default             {0, 0, 0, 0, 0}
-#define myobject_Uplink_init_zero                {0, 0, 0, 0, 0}
+#define myobject_Uplink_init_default             {0, 0, 0, 0, 0, 0}
+#define myobject_Uplink_init_zero                {0, 0, 0, 0, 0, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define myobject_Uplink_co2_tag                  1
@@ -33,6 +34,7 @@ typedef struct _myobject_Uplink {
 #define myobject_Uplink_humidity_tag             3
 #define myobject_Uplink_loudness_tag             4
 #define myobject_Uplink_battery_tag              5
+#define myobject_Uplink_timestamp_tag            6
 
 /* Struct field encoding specification for nanopb */
 #define myobject_Uplink_FIELDLIST(X, a) \
@@ -40,7 +42,8 @@ X(a, STATIC,   SINGULAR, FLOAT,    co2,               1) \
 X(a, STATIC,   SINGULAR, FLOAT,    temperature,       2) \
 X(a, STATIC,   SINGULAR, FLOAT,    humidity,          3) \
 X(a, STATIC,   SINGULAR, FLOAT,    loudness,          4) \
-X(a, STATIC,   SINGULAR, INT32,    battery,           5)
+X(a, STATIC,   SINGULAR, UINT32,   battery,           5) \
+X(a, STATIC,   SINGULAR, UINT32,   timestamp,         6)
 #define myobject_Uplink_CALLBACK NULL
 #define myobject_Uplink_DEFAULT NULL
 
@@ -50,7 +53,7 @@ extern const pb_msgdesc_t myobject_Uplink_msg;
 #define myobject_Uplink_fields &myobject_Uplink_msg
 
 /* Maximum encoded size of messages (where known) */
-#define myobject_Uplink_size                     31
+#define myobject_Uplink_size                     32
 
 #ifdef __cplusplus
 } /* extern "C" */

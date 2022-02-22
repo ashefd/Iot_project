@@ -3,7 +3,8 @@
 #include <SPI.h>
 #include <SparkFun_VEML7700_Arduino_Library.h>
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
-
+#include "format.pb.h"
+#include "pb_encode.h"
 
 #define PIN_GATE_IN 2
 #define IRQ_GATE_IN  0
@@ -24,6 +25,7 @@ void soundISR()
 void setup()
 {
   SerialUSB.begin(9600);
+  while (!SerialUSB) delay(10);
   SerialUSB.println(F("SCD4x Example"));
   Wire.begin();
 
@@ -34,8 +36,22 @@ void setup()
   if (mySensor.begin() == false)
   {
     SerialUSB.println(F("Sensor not detected. Please check wiring. Freezing..."));
-    while (1)
-      ;
+
+    unsigned char msg[myobject_Uplink_size];
+
+    myobject_Uplink message;
+    message.co2 = 2.f;
+    message.temperature = 2.f;
+    message.humidity = 2.f;
+    message.battery = 5;
+    message.timestamp = millis();
+
+    pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
+    pb_encode_delimited(&stream, myobject_Uplink_fields, &message);
+
+    SerialUSB.println(message.co2);
+
+    while (1);
   }else{
     SerialUSB.println(F("Sensor detected"));
   }
