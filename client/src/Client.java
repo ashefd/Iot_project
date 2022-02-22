@@ -1,5 +1,9 @@
+import com.google.protobuf.ByteString;
 import iot.sensor.Format.Uplink;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -13,16 +17,14 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 /**
  * Application connects to LO and consumes LoRa messages.
  */
 public class Client {
 
-    final static String DEST = "v3/projet-iot-polytech22@ttn/devices/eui-70b3d57ed004cbe4/up";
+    final static String DEST = "v3/tp-iot-willipet@ttn/devices/eui-70b3d57ed004cbe9/up";
 
     /**
      * Basic "MqttCallback" that handles messages as JSON Lora messages,
@@ -49,19 +51,12 @@ public class Client {
             try {
                 String mqttPayloadString = new String(mqttMessage.getPayload());
 
-                /*
-                * // pretty printing
-                * JsonParser parser = new JsonParser();
-                * JsonElement el = parser.parse(mqttPayloadString);
-                * System.out.println(gson.toJson(el));
-                */
-
                 // accès sous-objets
                 JsonObject mqttPayload = gson.fromJson(mqttPayloadString, JsonObject.class);
                 String message = mqttPayload.getAsJsonObject("uplink_message").get("frm_payload").getAsString();
                 byte[] decoder = Base64.getDecoder().decode(message);
                 Uplink msg = Uplink.parseFrom(decoder);
-                System.out.println(msg.getBattery());
+                System.out.println(msg);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -90,7 +85,7 @@ public class Client {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        String API_KEY = "NNSXS.MOHN2ZC3FHEM6LV5XVO27ZQMYGGGNXM62MPXRWA.4D4BQBQWCQMGTAPU2B4DWCYQTB36UPCJAF2BR33R2PYO6HAQ3JKA";
+        String API_KEY = "NNSXS.YATASZKMA6SZGTVRHCE4F7XPFYREOBDVI42E2NI.YFTSF2UNALT3G7H7VR4Y2I5LC7IHH7KXOTZ5WGUD5L7QWGCTBN5Q";
 
         String SERVER = "tcp://eu1.cloud.thethings.network:1883";
         String APP_ID = "app:" + UUID.randomUUID().toString();
@@ -104,7 +99,7 @@ public class Client {
             mqttClient.setCallback(new SimpleMqttCallback(mqttClient));
 
             MqttConnectOptions connOpts = new MqttConnectOptions();
-            connOpts.setUserName("projet-iot-polytech22@ttn");
+            connOpts.setUserName("tp-iot-willipet@ttn");
             connOpts.setPassword(API_KEY.toCharArray()); // passing API key value as password
             connOpts.setCleanSession(true);
             connOpts.setKeepAliveInterval(KEEP_ALIVE_INTERVAL);
