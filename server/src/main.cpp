@@ -13,6 +13,11 @@
 
 SCD4x mySensor;
 
+template <uint16_t PIN=PIN_ANALOG_IN>
+uint16_t getVoltage() {
+    return (uint16_t)roundf((3300.0f / 1023.0f) * (4.7f + 10.0f) / 10.0f * (float)analogRead(PIN));
+}
+
 void soundISR()
 {
   int pin_val;
@@ -26,6 +31,8 @@ void setup()
   SerialUSB.begin(9600);
   SerialUSB.println(F("SCD4x Example"));
   Wire.begin();
+
+  getVoltage();
 
   //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
 
