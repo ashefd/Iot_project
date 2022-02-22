@@ -4,6 +4,7 @@
 #include <SparkFun_VEML7700_Arduino_Library.h>
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 
+
 #define COMMAND_LED_OFF     0x00
 #define COMMAND_LED_ON      0x01
 #define COMMAND_GET_VALUE   0x05
@@ -11,6 +12,11 @@
 
 const byte qwiicAddress = 0x38;     //Default Address
 uint16_t ADC_VALUE=0;
+
+#define PIN_GATE_IN 2
+#define IRQ_GATE_IN  0
+#define PIN_LED_OUT 13
+#define PIN_ANALOG_IN A0
 
 
 SCD4x mySensor;
