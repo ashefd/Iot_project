@@ -1,0 +1,22 @@
+/*
+Command to build proto file
+In Iot_project:
+protoc --proto_path=. --cpp_out=server/src ./format.proto
+*/
+
+syntax = "proto3";
+
+package myobject;
+
+option java_package = "iot.sensor";
+
+//import "google/protobuf/timestamp.proto";
+
+message Uplink {
+  float co2 = 1;
+  float temperature = 2;
+  float humidity = 3;
+  float loudness = 4;
+  int32 battery = 5;
+  //google.protobuf.Timestamp timestamp = 6;
+}
