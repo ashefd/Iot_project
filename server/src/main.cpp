@@ -5,7 +5,21 @@
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 
 
+#define PIN_GATE_IN 2
+#define IRQ_GATE_IN  0
+#define PIN_LED_OUT 13
+#define PIN_ANALOG_IN A0
+
+
 SCD4x mySensor;
+
+void soundISR()
+{
+  int pin_val;
+  
+  pin_val = digitalRead(PIN_GATE_IN);
+  digitalWrite(PIN_LED_OUT, pin_val);   
+}
 
 void setup()
 {
@@ -25,6 +39,15 @@ void setup()
   }else{
     SerialUSB.println(F("Sensor detected"));
   }
+
+  pinMode(PIN_LED_OUT, OUTPUT);
+  
+  // configure input to interrupt
+  pinMode(PIN_GATE_IN, INPUT);
+  attachInterrupt(IRQ_GATE_IN, soundISR, CHANGE);
+
+  // Display status
+  Serial.println("Initialized");
 
 }
 
@@ -48,6 +71,26 @@ void loop()
   }
   else
     SerialUSB.print(F("."));
+
+  int value;
+  
+  // Check the envelope input
+  value = analogRead(PIN_ANALOG_IN);
+  
+  // Convert envelope value into a message
+  Serial.print("Status: ");
+  if(value <= 10)
+  {
+    Serial.println("Quiet.");
+  }
+  else if( (value > 10) && ( value <= 30) )
+  {
+    Serial.println("Moderate.");
+  }
+  else if(value > 30)
+  {
+    Serial.println("Loud.");
+  }
 
   delay(500);
 }
