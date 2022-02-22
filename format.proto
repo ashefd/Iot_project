@@ -1,7 +1,13 @@
 /*
 Command to build proto file to server
+
 In Iot_project:
-protoc --proto_path=. --cpp_out=server/src ./format.proto
+protoc --nanopb_out=./server/src format.proto
+
+Then in format.pb.h replace 
+#include <pb.h>
+with
+#include "pb.h" 
 */
 
 syntax = "proto3";
