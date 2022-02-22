@@ -5,6 +5,8 @@
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 #include "format.pb.h"
 #include "pb_encode.h"
+#include <lmic.h>
+#include <hal/hal.h>
 
 #define COMMAND_LED_OFF     0x00
 #define COMMAND_LED_ON      0x01
@@ -19,6 +21,175 @@ uint16_t ADC_VALUE=0;
 #define PIN_LED_OUT 13
 #define PIN_ANALOG_IN A0
 
+#define Console SerialUSB
+
+const lmic_pinmap lmic_pins = {
+    .nss = 12,//RFM Chip Select
+    .rxtx = LMIC_UNUSED_PIN,
+    .rst = 7,//RFM Reset
+    .dio = {6, 10, 11}, //RFM Interrupt, RFM LoRa pin, RFM LoRa pin
+};
+
+// Identifiants TTN
+static const u1_t PROGMEM APPEUI[8] = { 0x02, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
+
+static const u1_t PROGMEM DEVEUI[8] = { 0xE9, 0xCB, 0x04, 0xD0, 0x7E, 0xD5, 0xB3, 0x70 };
+void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
+
+static const u1_t PROGMEM APPKEY[16] = { 
+  0xC2, 0x86, 0xAC, 0x92, 0xC0, 0xD5, 0x41, 0xE4, 0x39, 0x47, 0x91, 0xF4, 0xDB, 0xB6, 0xCF, 0x10  
+};
+void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
+
+
+// Méthodes envois TTN 
+static osjob_t sendjob;
+
+const unsigned TX_INTERVAL = 60;
+
+void printHex2(unsigned v) {
+    v &= 0xff;
+    if (v < 16)
+        Console.print('0');
+    Console.print(v, HEX);
+}
+
+void do_send(osjob_t* j);
+
+void onEvent (ev_t ev) {
+    Console.print(os_getTime());
+    Console.print(": ");
+    switch(ev) {
+        case EV_SCAN_TIMEOUT:
+            Console.println(F("EV_SCAN_TIMEOUT"));
+            break;
+        case EV_BEACON_FOUND:
+            Console.println(F("EV_BEACON_FOUND"));
+            break;
+        case EV_BEACON_MISSED:
+            Console.println(F("EV_BEACON_MISSED"));
+            break;
+        case EV_BEACON_TRACKED:
+            Console.println(F("EV_BEACON_TRACKED"));
+            break;
+        case EV_JOINING:
+            Console.println(F("EV_JOINING"));
+            break;
+        case EV_JOINED:
+            Console.println(F("EV_JOINED"));
+            {
+              u4_t netid = 0;
+              devaddr_t devaddr = 0;
+              u1_t nwkKey[16];
+              u1_t artKey[16];
+              LMIC_getSessionKeys(&netid, &devaddr, nwkKey, artKey);
+              Console.print("netid: ");
+              Console.println(netid, DEC);
+              Console.print("devaddr: ");
+              Console.println(devaddr, HEX);
+              Console.print("AppSKey: ");
+              for (size_t i=0; i<sizeof(artKey); ++i) {
+                if (i != 0)
+                  Console.print("-");
+                printHex2(artKey[i]);
+              }
+              Console.println("");
+              Console.print("NwkSKey: ");
+              for (size_t i=0; i<sizeof(nwkKey); ++i) {
+                      if (i != 0)
+                              Console.print("-");
+                      printHex2(nwkKey[i]);
+              }
+              Console.println();
+            }
+            os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
+            // Disable link check validation (automatically enabled
+            // during join, but because slow data rates change max TX
+	        // size, we don't use it in this example.
+            LMIC_setLinkCheckMode(0);
+            break;
+        case EV_RFU1:
+             Console.println(F("EV_RFU1"));
+             break;
+        case EV_JOIN_FAILED:
+            Console.println(F("EV_JOIN_FAILED"));
+            break;
+        case EV_REJOIN_FAILED:
+            Console.println(F("EV_REJOIN_FAILED"));
+            break;
+        case EV_TXCOMPLETE:
+            Console.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+            if (LMIC.txrxFlags & TXRX_ACK)
+              Console.println(F("Received ack"));
+            if (LMIC.dataLen) {
+              Console.print(F("Received "));
+              Console.print(LMIC.dataLen);
+              Console.println(F(" bytes of payload"));
+            }
+            // Schedule next transmission
+            os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
+            break;
+        case EV_LOST_TSYNC:
+            Console.println(F("EV_LOST_TSYNC"));
+            break;
+        case EV_RESET:
+            Console.println(F("EV_RESET"));
+            break;
+        case EV_RXCOMPLETE:
+            // data received in ping slot
+            Console.println(F("EV_RXCOMPLETE"));
+            break;
+        case EV_LINK_DEAD:
+            Console.println(F("EV_LINK_DEAD"));
+            break;
+        case EV_LINK_ALIVE:
+            Console.println(F("EV_LINK_ALIVE"));
+            break;
+        case EV_SCAN_FOUND:
+            Console.println(F("EV_SCAN_FOUND"));
+            break;
+        case EV_TXSTART:
+            Console.println(F("EV_TXSTART"));
+            break;
+        case EV_TXCANCELED:
+            Console.println(F("EV_TXCANCELED"));
+            break;
+        case EV_RXSTART:
+            break;
+        case EV_JOIN_TXCOMPLETE:
+            Console.println(F("EV_JOIN_TXCOMPLETE: no JoinAccept"));
+            break;
+        default:
+            Console.print(F("Unknown event: "));
+            Console.println((unsigned) ev);
+            break;
+    }
+}
+
+void do_send(osjob_t* j){
+    // Check if there is not a current TX/RX job running
+    if (LMIC.opmode & OP_TXRXPEND) {
+        Console.println(F("OP_TXRXPEND, not sending"));
+    } else {
+      unsigned char msg[myobject_Uplink_size];
+
+      myobject_Uplink message;
+      message.co2 = 2.f;
+      message.temperature = 2.f;
+      message.humidity = 2.f;
+      message.battery = 5;
+      message.timestamp = millis();
+
+      pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
+      pb_encode_delimited(&stream, myobject_Uplink_fields, &message);
+
+      // Prepare upstream data transmission at the next possible time.
+      LMIC_setTxData2(1, msg, stream.bytes_written, 0);
+      Console.println(F("Packet queued"));
+    }
+    // Next TX is scheduled after TX_COMPLETE event.
+}
 
 SCD4x mySensor;
 
@@ -78,44 +249,39 @@ void setup()
   SerialUSB.begin(9600);
   while (!SerialUSB) delay(10);
   SerialUSB.println(F("SCD4x Example"));
-  Wire.begin();
+  /*Wire.begin();
 
-  getVoltage();
+  getVoltage();*/
 
   //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
 
   //.begin will start periodic measurements for us (see the later examples for details on how to override this)
 
-  if (mySensor.begin() == false)
+  // LMIC init
+  os_init_ex(&lmic_pins);
+
+  // Reset the MAC state. Session and pending data transfers will be discarded.
+  LMIC_reset();
+  LMIC_setAdrMode(1);
+  LMIC_startJoining();
+
+  /*if (mySensor.begin() == false)
   {
     SerialUSB.println(F("Sensor not detected"));
-
-    unsigned char msg[myobject_Uplink_size];
-
-    myobject_Uplink message;
-    message.co2 = 2.f;
-    message.temperature = 2.f;
-    message.humidity = 2.f;
-    message.battery = 5;
-    message.timestamp = millis();
-
-    pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
-    pb_encode_delimited(&stream, myobject_Uplink_fields, &message);
-
-    SerialUSB.println(message.co2);
-
   } else{
     SerialUSB.println(F("Sensor detected"));
   }
 
   testForConnectivity();
-  ledOn();
-  delay(1000);
+  ledOn();*/
+  //delay(1000);
 }
 
 void loop()
 {
-  get_value();
+  os_runloop_once();
+
+  /*get_value();
   ledOn();
   ledOff();
   
@@ -136,5 +302,5 @@ void loop()
   }
   else
     SerialUSB.println(F("."));
-  delay(1000);
+  delay(1000);*/
 }
