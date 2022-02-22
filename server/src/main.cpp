@@ -7,11 +7,14 @@
 #include "pb_encode.h"
 #include <lmic.h>
 #include <hal/hal.h>
+#include <RTCZero.h>
 
 #define COMMAND_LED_OFF     0x00
 #define COMMAND_LED_ON      0x01
 #define COMMAND_GET_VALUE   0x05
 #define COMMAND_NOTHING_NEW 0x99
+
+int del = 1000;
 
 const byte qwiicAddress = 0x38;     //Default Address
 uint16_t ADC_VALUE=0;
@@ -42,8 +45,22 @@ static const u1_t PROGMEM APPKEY[16] = {
 };
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 
+constexpr uint32_t ledPin = LED_BUILTIN;
+volatile byte state = LOW;
+
+static osjob_t sendjob;
 
 SCD4x mySensor;
+RTCZero rtc;
+
+void changeDelay(bool bcp)
+{
+  if(bcp)
+  {
+    del = 1000;
+  }
+  else del = 10000;
+}
 
 void get_value() {
   Wire.beginTransmission(qwiicAddress);
@@ -67,7 +84,7 @@ void get_value() {
   }
   uint16_t x=Wire.read(); 
 }
-
+/*
 void ledOn() {
   Wire.beginTransmission(qwiicAddress);
   Wire.write(COMMAND_LED_ON);
@@ -79,6 +96,7 @@ void ledOff() {
   Wire.write(COMMAND_LED_OFF);
   Wire.endTransmission();
 }
+*/
 
 template <uint16_t PIN=PIN_ANALOG_IN>
 uint16_t getVoltage() {
@@ -226,21 +244,27 @@ void do_send(osjob_t* j){
     } else {
       // Get measures
       get_value();
-      ledOn();
-      ledOff();
+      //ledOn();
+      //ledOff();
+
+      unsigned char msg[myobject_Uplink_size];
+      myobject_Uplink message;
       
       if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
       {
         SerialUSB.println();
 
+        message.co2 = mySensor.getCO2();
         SerialUSB.println(F("CO2(ppm):"));
-        SerialUSB.println(mySensor.getCO2());
+        SerialUSB.println(message.co2);
 
+        message.temperature = mySensor.getTemperature();
         SerialUSB.println(F("\tTemperature(C):"));
-        SerialUSB.println(mySensor.getTemperature(), 1);
+        SerialUSB.println(message.temperature, 1);
 
+        message.humidity = mySensor.getHumidity();
         SerialUSB.println(F("\tHumidity(%RH):"));
-        SerialUSB.println(mySensor.getHumidity(), 1);
+        SerialUSB.println(message.humidity, 1);
 
         SerialUSB.println();
       }
@@ -249,13 +273,8 @@ void do_send(osjob_t* j){
 
 
       // Send data
-      unsigned char msg[myobject_Uplink_size];
-
-      myobject_Uplink message;
-      message.co2 = 2.f;
-      message.temperature = 2.f;
-      message.humidity = 2.f;
       message.battery = 5;
+      message.loudness = 5.f;
       message.timestamp = millis();
 
       pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
@@ -269,14 +288,47 @@ void do_send(osjob_t* j){
 }
 
 
+void alarmInterrupt() {
+  state = !state;
+  digitalWrite(ledPin, state);
+  SerialUSB.println("Level of battery : ");
+  SerialUSB.println( getVoltage());
+  get_value();
+
+  //ledOn();
+  //delay(200);
+  //ledOff();
+  
+  SerialUSB.println("Level of battery : ");
+  SerialUSB.println( getVoltage());
+  
+  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
+  {
+    SerialUSB.println();
+
+    SerialUSB.println(F("CO2(ppm):"));
+    SerialUSB.println(mySensor.getCO2());
+
+    SerialUSB.println(F("\tTemperature(C):"));
+    SerialUSB.println(mySensor.getTemperature(), 1);
+
+    SerialUSB.println(F("\tHumidity(%RH):"));
+    SerialUSB.println(mySensor.getHumidity(), 1);
+
+    SerialUSB.println();
+  }
+  else
+    SerialUSB.println(F("."));
+  rtc.setSeconds(0); // A chaque interruption, 
+}
+
 void setup()
 {
   SerialUSB.begin(9600);
   while (!SerialUSB) delay(10);
-  SerialUSB.println(F("SCD4x Example"));
+  SerialUSB.println(F("Okay !"));
   Wire.begin();
 
-  getVoltage();
 
   //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
 
@@ -298,11 +350,18 @@ void setup()
   }
 
   testForConnectivity();
-  ledOn();
+  //ledOn();
   //delay(1000);
+  rtc.begin(); // initialize RTC 24H format
+  rtc.setSeconds(0);
+  rtc.setAlarmSeconds(7);
+  rtc.enableAlarm(rtc.MATCH_SS);
+  rtc.attachInterrupt(alarmInterrupt);
 }
+
 
 void loop()
 {
   os_runloop_once();
+  //rtc.standbyMode(); 
 }
