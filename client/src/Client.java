@@ -1,3 +1,5 @@
+import iot.sensor.Format.Uplink;
+
 import java.util.Base64;
 import java.util.UUID;
 
@@ -19,7 +21,7 @@ import com.google.gson.JsonParser;
  * Application connects to LO and consumes LoRa messages.
  */
 public class Client {
-    
+
     final static String DEST = "v3/projet-iot-polytech22@ttn/devices/eui-70b3d57ed004cbe4/up";
 
     /**
@@ -58,8 +60,8 @@ public class Client {
                 JsonObject mqttPayload = gson.fromJson(mqttPayloadString, JsonObject.class);
                 String message = mqttPayload.getAsJsonObject("uplink_message").get("frm_payload").getAsString();
                 byte[] decoder = Base64.getDecoder().decode(message);
-                String message_decoded = new String(decoder);
-                System.out.println(message_decoded);
+                Uplink msg = Uplink.parseFrom(decoder);
+                System.out.println(msg.getBattery());
 
             } catch (Exception e) {
                 e.printStackTrace();
