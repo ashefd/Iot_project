@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package myobject;
+
+import "google/protobuf/timestamp.proto";
+
+message Uplink {
+  float co2 = 1;
+  float temperature = 2;
+  float humidity = 3;
+  float loudness = 4;
+  uint16_t voltage = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
