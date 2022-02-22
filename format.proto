@@ -9,6 +9,6 @@ message Uplink {
   float temperature = 2;
   float humidity = 3;
   float loudness = 4;
-  uint16_t voltage = 5;
+  uint16_t battery = 5;
   google.protobuf.Timestamp timestamp = 6;
 }
