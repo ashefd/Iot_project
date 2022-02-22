@@ -7,6 +7,8 @@
 #include "pb_encode.h"
 #include <lmic.h>
 #include <hal/hal.h>
+#include <RTCZero.h>
+
 
 #define COMMAND_LED_OFF     0x00
 #define COMMAND_LED_ON      0x01
@@ -23,8 +25,13 @@ uint16_t ADC_VALUE=0;
 #define PIN_LED_OUT 13
 #define PIN_ANALOG_IN A0
 
+constexpr uint32_t ledPin = LED_BUILTIN;
+volatile byte state = LOW;
 
 SCD4x mySensor;
+RTCZero rtc;
+
+
 
 const lmic_pinmap lmic_pins = {
     .nss = 12,//RFM Chip Select
@@ -229,7 +236,7 @@ void get_value() {
   }
   uint16_t x=Wire.read(); 
 }
-
+/*
 void ledOn() {
   Wire.beginTransmission(qwiicAddress);
   Wire.write(COMMAND_LED_ON);
@@ -241,6 +248,7 @@ void ledOff() {
   Wire.write(COMMAND_LED_OFF);
   Wire.endTransmission();
 }
+*/
 
 template <uint16_t PIN=PIN_ANALOG_IN>
 uint16_t getVoltage() {
@@ -258,15 +266,48 @@ void testForConnectivity() {
 }
 
 
+void alarmInterrupt() {
+  state = !state;
+  digitalWrite(ledPin, state);
+  SerialUSB.println("Level of battery : ");
+  SerialUSB.println( getVoltage());
+  get_value();
+
+  //ledOn();
+  //delay(200);
+  //ledOff();
+  
+  SerialUSB.println("Level of battery : ");
+  SerialUSB.println( getVoltage());
+  
+  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
+  {
+    SerialUSB.println();
+
+    SerialUSB.println(F("CO2(ppm):"));
+    SerialUSB.println(mySensor.getCO2());
+
+    SerialUSB.println(F("\tTemperature(C):"));
+    SerialUSB.println(mySensor.getTemperature(), 1);
+
+    SerialUSB.println(F("\tHumidity(%RH):"));
+    SerialUSB.println(mySensor.getHumidity(), 1);
+
+    SerialUSB.println();
+  }
+  else
+    SerialUSB.println(F("."));
+  rtc.setSeconds(0); // A chaque interruption, 
+}
+
 void setup()
 {
   SerialUSB.begin(9600);
   while (!SerialUSB) delay(10);
-  SerialUSB.println(F("SCD4x Example"));
+  SerialUSB.println(F("Okay !"));
   Wire.begin();
 
-  SerialUSB.println("Level of battery : ");
-  SerialUSB.println( getVoltage());
+
   //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
 
   //.begin will start periodic measurements for us (see the later examples for details on how to override this)
@@ -294,36 +335,16 @@ void setup()
   }
 
   testForConnectivity();
-  ledOn();
-  delay(del);
+  //ledOn();
+  rtc.begin(); // initialize RTC 24H format
+  rtc.setSeconds(0);
+  rtc.setAlarmSeconds(7);
+  rtc.enableAlarm(rtc.MATCH_SS);
+  rtc.attachInterrupt(alarmInterrupt);
 }
+
 
 void loop()
 {
-  get_value();
-  ledOn();
-  ledOff();
-  
-  SerialUSB.println("Level of battery : ");
-  SerialUSB.println( getVoltage());
-  
-  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
-  {
-    SerialUSB.println();
-
-    SerialUSB.println(F("CO2(ppm):"));
-    SerialUSB.println(mySensor.getCO2());
-
-    SerialUSB.println(F("\tTemperature(C):"));
-    SerialUSB.println(mySensor.getTemperature(), 1);
-
-    SerialUSB.println(F("\tHumidity(%RH):"));
-    SerialUSB.println(mySensor.getHumidity(), 1);
-
-    SerialUSB.println();
-  }
-  else
-    SerialUSB.println(F("."));
-
-  delay(del);
+  rtc.standbyMode(); 
 }
