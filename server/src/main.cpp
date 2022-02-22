@@ -46,7 +46,7 @@ void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 // Méthodes envois TTN 
 static osjob_t sendjob;
 
-const unsigned TX_INTERVAL = 60;
+const unsigned TX_INTERVAL = 30;
 
 void printHex2(unsigned v) {
     v &= 0xff;
@@ -249,9 +249,9 @@ void setup()
   SerialUSB.begin(9600);
   while (!SerialUSB) delay(10);
   SerialUSB.println(F("SCD4x Example"));
-  /*Wire.begin();
+  Wire.begin();
 
-  getVoltage();*/
+  getVoltage();
 
   //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on SerialUSB
 
@@ -265,7 +265,7 @@ void setup()
   LMIC_setAdrMode(1);
   LMIC_startJoining();
 
-  /*if (mySensor.begin() == false)
+  if (mySensor.begin() == false)
   {
     SerialUSB.println(F("Sensor not detected"));
   } else{
@@ -273,7 +273,7 @@ void setup()
   }
 
   testForConnectivity();
-  ledOn();*/
+  ledOn();
   //delay(1000);
 }
 
@@ -281,7 +281,7 @@ void loop()
 {
   os_runloop_once();
 
-  /*get_value();
+  get_value();
   ledOn();
   ledOff();
   
@@ -302,5 +302,4 @@ void loop()
   }
   else
     SerialUSB.println(F("."));
-  delay(1000);*/
 }
