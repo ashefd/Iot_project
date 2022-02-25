@@ -43,14 +43,16 @@ public final class Format {
     float getLoudness();
 
     /**
-     * <pre>
-     *google.protobuf.Timestamp timestamp = 6;
-     * </pre>
-     *
-     * <code>int32 battery = 5;</code>
+     * <code>uint32 battery = 5;</code>
      * @return The battery.
      */
     int getBattery();
+
+    /**
+     * <code>uint32 timestamp = 6;</code>
+     * @return The timestamp.
+     */
+    int getTimestamp();
   }
   /**
    * Protobuf type {@code myobject.Uplink}
@@ -119,7 +121,12 @@ public final class Format {
             }
             case 40: {
 
-              battery_ = input.readInt32();
+              battery_ = input.readUInt32();
+              break;
+            }
+            case 48: {
+
+              timestamp_ = input.readUInt32();
               break;
             }
             default: {
@@ -201,16 +208,23 @@ public final class Format {
     public static final int BATTERY_FIELD_NUMBER = 5;
     private int battery_;
     /**
-     * <pre>
-     *google.protobuf.Timestamp timestamp = 6;
-     * </pre>
-     *
-     * <code>int32 battery = 5;</code>
+     * <code>uint32 battery = 5;</code>
      * @return The battery.
      */
     @java.lang.Override
     public int getBattery() {
       return battery_;
+    }
+
+    public static final int TIMESTAMP_FIELD_NUMBER = 6;
+    private int timestamp_;
+    /**
+     * <code>uint32 timestamp = 6;</code>
+     * @return The timestamp.
+     */
+    @java.lang.Override
+    public int getTimestamp() {
+      return timestamp_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -240,7 +254,10 @@ public final class Format {
         output.writeFloat(4, loudness_);
       }
       if (battery_ != 0) {
-        output.writeInt32(5, battery_);
+        output.writeUInt32(5, battery_);
+      }
+      if (timestamp_ != 0) {
+        output.writeUInt32(6, timestamp_);
       }
       unknownFields.writeTo(output);
     }
@@ -269,7 +286,11 @@ public final class Format {
       }
       if (battery_ != 0) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(5, battery_);
+          .computeUInt32Size(5, battery_);
+      }
+      if (timestamp_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt32Size(6, timestamp_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -300,6 +321,8 @@ public final class Format {
               other.getLoudness())) return false;
       if (getBattery()
           != other.getBattery()) return false;
+      if (getTimestamp()
+          != other.getTimestamp()) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -325,6 +348,8 @@ public final class Format {
           getLoudness());
       hash = (37 * hash) + BATTERY_FIELD_NUMBER;
       hash = (53 * hash) + getBattery();
+      hash = (37 * hash) + TIMESTAMP_FIELD_NUMBER;
+      hash = (53 * hash) + getTimestamp();
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -468,6 +493,8 @@ public final class Format {
 
         battery_ = 0;
 
+        timestamp_ = 0;
+
         return this;
       }
 
@@ -499,6 +526,7 @@ public final class Format {
         result.humidity_ = humidity_;
         result.loudness_ = loudness_;
         result.battery_ = battery_;
+        result.timestamp_ = timestamp_;
         onBuilt();
         return result;
       }
@@ -561,6 +589,9 @@ public final class Format {
         }
         if (other.getBattery() != 0) {
           setBattery(other.getBattery());
+        }
+        if (other.getTimestamp() != 0) {
+          setTimestamp(other.getTimestamp());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -717,11 +748,7 @@ public final class Format {
 
       private int battery_ ;
       /**
-       * <pre>
-       *google.protobuf.Timestamp timestamp = 6;
-       * </pre>
-       *
-       * <code>int32 battery = 5;</code>
+       * <code>uint32 battery = 5;</code>
        * @return The battery.
        */
       @java.lang.Override
@@ -729,11 +756,7 @@ public final class Format {
         return battery_;
       }
       /**
-       * <pre>
-       *google.protobuf.Timestamp timestamp = 6;
-       * </pre>
-       *
-       * <code>int32 battery = 5;</code>
+       * <code>uint32 battery = 5;</code>
        * @param value The battery to set.
        * @return This builder for chaining.
        */
@@ -744,16 +767,43 @@ public final class Format {
         return this;
       }
       /**
-       * <pre>
-       *google.protobuf.Timestamp timestamp = 6;
-       * </pre>
-       *
-       * <code>int32 battery = 5;</code>
+       * <code>uint32 battery = 5;</code>
        * @return This builder for chaining.
        */
       public Builder clearBattery() {
         
         battery_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int timestamp_ ;
+      /**
+       * <code>uint32 timestamp = 6;</code>
+       * @return The timestamp.
+       */
+      @java.lang.Override
+      public int getTimestamp() {
+        return timestamp_;
+      }
+      /**
+       * <code>uint32 timestamp = 6;</code>
+       * @param value The timestamp to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTimestamp(int value) {
+        
+        timestamp_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>uint32 timestamp = 6;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTimestamp() {
+        
+        timestamp_ = 0;
         onChanged();
         return this;
       }
@@ -824,10 +874,11 @@ public final class Format {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\014format.proto\022\010myobject\"_\n\006Uplink\022\013\n\003co" +
+      "\n\014format.proto\022\010myobject\"r\n\006Uplink\022\013\n\003co" +
       "2\030\001 \001(\002\022\023\n\013temperature\030\002 \001(\002\022\020\n\010humidity" +
       "\030\003 \001(\002\022\020\n\010loudness\030\004 \001(\002\022\017\n\007battery\030\005 \001(" +
-      "\005B\014\n\niot.sensorb\006proto3"
+      "\r\022\021\n\ttimestamp\030\006 \001(\rB\014\n\niot.sensorb\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -838,7 +889,7 @@ public final class Format {
     internal_static_myobject_Uplink_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_myobject_Uplink_descriptor,
-        new java.lang.String[] { "Co2", "Temperature", "Humidity", "Loudness", "Battery", });
+        new java.lang.String[] { "Co2", "Temperature", "Humidity", "Loudness", "Battery", "Timestamp", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

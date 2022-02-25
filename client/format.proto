@@ -10,13 +10,11 @@ package myobject;
 
 option java_package = "iot.sensor";
 
-//import "google/protobuf/timestamp.proto";
-
 message Uplink {
   float co2 = 1;
   float temperature = 2;
   float humidity = 3;
   float loudness = 4;
-  int32 battery = 5;
-  //google.protobuf.Timestamp timestamp = 6;
+  uint32 battery = 5;
+  uint32 timestamp = 6;
 }

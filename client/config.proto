@@ -1,0 +1,17 @@
+/*
+Command to build proto file to server
+
+In Iot_project:
+protoc --nanopb_out=./server/src config.proto
+*/
+
+syntax = "proto3";
+
+option java_package = "iot.sensor";
+
+package myobject;
+
+message Downlink {
+  uint32 start_hour = 1;
+  uint32 end_hour = 2;
+}
