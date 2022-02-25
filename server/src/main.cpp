@@ -295,7 +295,7 @@ void do_send(osjob_t* j){
 
 
       // Send data
-      message.battery = 5;
+      message.battery = (uint16_t)roundf((3300.0f / 1023.0f) * (4.7f + 10.0f) / 10.0f * (float)analogRead(A5));
       message.loudness = loudness;
       message.timestamp = millis();
 
