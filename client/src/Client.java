@@ -1,10 +1,8 @@
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
+import iot.sensor.Config.Downlink;
 import iot.sensor.Format.Uplink;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
 import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
@@ -63,9 +61,21 @@ public class Client {
                     System.out.println("CO2 : " + msg.getCo2());
                     System.out.println("Humidity : " + msg.getHumidity());
                     System.out.println("Loudness : " + msg.getLoudness());
-                    System.out.println("Battery : " + ((float) msg.getBattery() / 3700.0f) * 100.0f + " %, " + msg.getBattery());
-                    System.out.println("Timestamp : " + new Date((long) msg.getTimestamp() * 1000) + ", " + msg.getTimestamp());
+                    System.out.println("Battery : " + ((float) msg.getBattery() / 3700.0f) * 100.0f + " %");
+                    System.out.println("Timestamp : " + new Date((long) msg.getTimestamp() * 1000));
                 }
+
+                // Envoi de la configuration horaire au contrôleur (inachevé)
+                MqttMessage configMsg = new MqttMessage();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bos);
+                Downlink send = Downlink.newBuilder().setStartHour(8).setEndHour(16).build();
+                oos.writeObject(send);
+                oos.flush();
+                byte[] configBytes = bos.toByteArray();
+                configMsg.setPayload(configBytes);
+                this.mqttClient.publish(DEST, configMsg);
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
