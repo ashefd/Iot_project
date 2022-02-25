@@ -196,6 +196,7 @@ void onEvent (ev_t ev) {
             if (LMIC.txrxFlags & TXRX_ACK)
               Console.println(F("Received ack"));
             if (LMIC.dataLen) {
+              SerialUSB.println("\n\n on recoit qq chose");
               Console.print(F("Received "));
               Console.print(LMIC.dataLen);
               Console.println(F(" bytes of payload"));
