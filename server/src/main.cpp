@@ -8,6 +8,9 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <RTCZero.h>
+#include <TimeLib.h>
+
+
 
 #define COMMAND_LED_OFF     0x00
 #define COMMAND_LED_ON      0x01
@@ -15,6 +18,8 @@
 #define COMMAND_NOTHING_NEW 0x99
 
 int del = 1000;
+
+uint32_t userUTCTime; // Seconds since the UTC epoch
 
 const byte qwiicAddress = 0x38;     //Default Address
 uint16_t ADC_VALUE=0;
@@ -235,6 +240,55 @@ void onEvent (ev_t ev) {
     }
 }
 
+void user_request_network_time_callback(void *pVoidUserUTCTime, int flagSuccess) {
+    // Explicit conversion from void* to uint32_t* to avoid compiler errors
+    uint32_t *pUserUTCTime = (uint32_t *) pVoidUserUTCTime;
+
+    // A struct that will be populated by LMIC_getNetworkTimeReference.
+    // It contains the following fields:
+    //  - tLocal: the value returned by os_GetTime() when the time
+    //            request was sent to the gateway, and
+    //  - tNetwork: the seconds between the GPS epoch and the time
+    //              the gateway received the time request
+    lmic_time_reference_t lmicTimeReference;
+
+    if (flagSuccess != 1) {
+        Serial.println(F("USER CALLBACK: Not a success"));
+        return;
+    }
+
+    // Populate "lmic_time_reference"
+    flagSuccess = LMIC_getNetworkTimeReference(&lmicTimeReference);
+    if (flagSuccess != 1) {
+        Serial.println(F("USER CALLBACK: LMIC_getNetworkTimeReference didn't succeed"));
+        return;
+    }
+
+    // Update userUTCTime, considering the difference between the GPS and UTC
+    // epoch, and the leap seconds
+    *pUserUTCTime = lmicTimeReference.tNetwork + 315964800;
+
+    // Current time, in ticks
+    ostime_t ticksNow = os_getTime();
+    // Time when the request was sent, in ticks
+    ostime_t ticksRequestSent = lmicTimeReference.tLocal;
+    uint32_t requestDelaySec = osticks2ms(ticksNow - ticksRequestSent) / 1000;
+    *pUserUTCTime += requestDelaySec;
+
+    // Update the system time with the time read from the network
+    setTime(*pUserUTCTime);
+
+    SerialUSB.print(F("The current UTC time is: "));
+    SerialUSB.print(hour());
+    SerialUSB.print(' ');
+    SerialUSB.print(day());
+    SerialUSB.print('/');
+    SerialUSB.print(month());
+    SerialUSB.print('/');
+    SerialUSB.print(year());
+    SerialUSB.println();
+}
+
 void do_send(osjob_t* j){
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND) {
@@ -293,11 +347,25 @@ void do_send(osjob_t* j){
       else
         SerialUSB.println(F("."));
 
+      // timestamp
+      LMIC_requestNetworkTime(user_request_network_time_callback, &userUTCTime);
 
+      SerialUSB.print(hour());
+      SerialUSB.print(' ');
+      SerialUSB.print(day());
+      SerialUSB.print('/');
+      SerialUSB.print(month());
+      SerialUSB.print('/');
+      SerialUSB.print(year());
+      SerialUSB.println();
+
+      
       // Send data
       message.battery = (uint16_t)roundf((3300.0f / 1023.0f) * (4.7f + 10.0f) / 10.0f * (float)analogRead(A5));
       message.loudness = loudness;
-      message.timestamp = millis();
+      message.timestamp = userUTCTime;
+      SerialUSB.println("Le print timestamp qui est bon la sa maman");
+      SerialUSB.println(userUTCTime);
 
       pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
       pb_encode(&stream, myobject_Uplink_fields, &message);
