@@ -60,7 +60,7 @@ void changeDelay(bool bcp)
   else del = 10000;
 }
 
-void get_value() {
+uint16_t get_value() {
   Wire.beginTransmission(qwiicAddress);
   Wire.write(COMMAND_GET_VALUE); // command for status
   Wire.endTransmission();    // stop transmitting //this looks like it was essential.
@@ -80,7 +80,7 @@ void get_value() {
   SerialUSB.println("ADC_VALUE:  ");
   SerialUSB.println(ADC_VALUE,DEC);
   }
-  uint16_t x=Wire.read(); 
+  return Wire.read(); 
 }
 /*
 void ledOn() {
@@ -114,7 +114,7 @@ void testForConnectivity() {
 // Méthodes envois TTN 
 static osjob_t sendjob;
 
-const unsigned TX_INTERVAL = 30;
+const unsigned TX_INTERVAL = 10;
 
 void printHex2(unsigned v) {
     v &= 0xff;
@@ -241,7 +241,31 @@ void do_send(osjob_t* j){
         Console.println(F("OP_TXRXPEND, not sending"));
     } else {
       // Get measures
-      //get_value();
+      
+      uint8_t loudness;
+      Wire.beginTransmission(qwiicAddress);
+      Wire.write(COMMAND_GET_VALUE); // command for status
+      Wire.endTransmission();    // stop transmitting //this looks like it was essential.
+
+      Wire.requestFrom(qwiicAddress, 2);    // request 1 bytes from slave device qwiicAddress
+
+      if (Wire.available()) { // slave may send less than requested
+        uint8_t ADC_VALUE_L = Wire.read(); 
+      //  SerialUSBprintln("ADC_VALUE_L:  ");
+      //  SerialUSBprintln(ADC_VALUE_L,DEC);
+        uint8_t ADC_VALUE_H = Wire.read();
+      //  SerialUSBprintln("ADC_VALUE_H:  ");
+      //  SerialUSBprintln(ADC_VALUE_H,DEC);
+        uint8_t ADC_VALUE=ADC_VALUE_H;
+        ADC_VALUE<<=8;
+        ADC_VALUE|=ADC_VALUE_L;
+        SerialUSB.println("ADC_VALUE:  ");
+        SerialUSB.println(ADC_VALUE,DEC);
+        
+        Wire.read();
+        loudness = ADC_VALUE;
+      }
+      
       //ledOn();
       //ledOff();
 
@@ -272,7 +296,7 @@ void do_send(osjob_t* j){
 
       // Send data
       message.battery = 5;
-      message.loudness = 5.f;
+      message.loudness = loudness;
       message.timestamp = millis();
 
       pb_ostream_t stream = pb_ostream_from_buffer(msg, sizeof(msg));
