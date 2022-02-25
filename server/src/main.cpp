@@ -48,8 +48,6 @@ void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 constexpr uint32_t ledPin = LED_BUILTIN;
 volatile byte state = LOW;
 
-static osjob_t sendjob;
-
 SCD4x mySensor;
 RTCZero rtc;
 
@@ -243,7 +241,7 @@ void do_send(osjob_t* j){
         Console.println(F("OP_TXRXPEND, not sending"));
     } else {
       // Get measures
-      get_value();
+      //get_value();
       //ledOn();
       //ledOff();
 
@@ -352,11 +350,12 @@ void setup()
   testForConnectivity();
   //ledOn();
   //delay(1000);
-  rtc.begin(); // initialize RTC 24H format
-  rtc.setSeconds(0);
-  rtc.setAlarmSeconds(7);
-  rtc.enableAlarm(rtc.MATCH_SS);
-  rtc.attachInterrupt(alarmInterrupt);
+
+  //rtc.begin(); // initialize RTC 24H format
+  //rtc.setSeconds(0);
+  //rtc.setAlarmSeconds(7);
+  //rtc.enableAlarm(rtc.MATCH_SS);
+  //rtc.attachInterrupt(alarmInterrupt);
 }
 
 
