@@ -1,10 +1,12 @@
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
 import iot.sensor.Format.Uplink;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Date;
 import java.util.UUID;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -53,11 +55,17 @@ public class Client {
 
                 // accès sous-objets
                 JsonObject mqttPayload = gson.fromJson(mqttPayloadString, JsonObject.class);
-                String message = mqttPayload.getAsJsonObject("uplink_message").get("frm_payload").getAsString();
-                byte[] decoder = Base64.getDecoder().decode(message);
-                Uplink msg = Uplink.parseFrom(decoder);
-                System.out.println(msg);
-
+                if (mqttPayload.getAsJsonObject("uplink_message").get("frm_payload") != null) {
+                    String message = mqttPayload.getAsJsonObject("uplink_message").get("frm_payload").getAsString();
+                    byte[] decoder = Base64.getDecoder().decode(message);
+                    Uplink msg = Uplink.parseFrom(decoder);
+                    System.out.println("Temperature : " + msg.getTemperature());
+                    System.out.println("CO2 : " + msg.getCo2());
+                    System.out.println("Humidity : " + msg.getHumidity());
+                    System.out.println("Loudness : " + msg.getLoudness());
+                    System.out.println("Battery : " + ((float) msg.getBattery() / 3700.0f) * 100.0f + " %, " + msg.getBattery());
+                    System.out.println("Timestamp : " + new Date((long) msg.getTimestamp() * 1000) + ", " + msg.getTimestamp());
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
